@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="900" height="260" role="img" aria-label="trading-agent: signals to model to rails to broker, with the model boxed in by code-enforced rails">
+  <defs>
+    <linearGradient id="railGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.55"/>
+    </linearGradient>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- wordmark -->
+  <text x="40" y="52" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="30" font-weight="700" fill="#0f766e">trading-agent</text>
+  <text x="40" y="78" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="14.5" fill="#64748b">The model proposes. Code disposes.</text>
+
+  <!-- pipeline -->
+  <g font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="13">
+    <!-- signals -->
+    <rect x="40" y="120" width="150" height="62" rx="10" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5"/>
+    <text x="115" y="146" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0f766e">signal engine</text>
+    <text x="115" y="165" text-anchor="middle" font-size="11.5" fill="#5f7d8c">5 signals · −5…+5</text>
+
+    <line x1="196" y1="151" x2="238" y2="151" stroke="#64748b" stroke-width="1.6" marker-end="url(#arw)"/>
+
+    <!-- model, deliberately drawn small and contained -->
+    <rect x="244" y="120" width="150" height="62" rx="10" fill="#fefce8" stroke="#fde047" stroke-width="1.5" stroke-dasharray="5 3"/>
+    <text x="319" y="146" text-anchor="middle" font-size="13.5" font-weight="600" fill="#a16207">LLM</text>
+    <text x="319" y="165" text-anchor="middle" font-size="11.5" fill="#8a7134">proposes only</text>
+
+    <line x1="400" y1="151" x2="442" y2="151" stroke="#64748b" stroke-width="1.6" marker-end="url(#arw)"/>
+
+    <!-- rails: the emphasis of the whole picture -->
+    <rect x="448" y="108" width="230" height="86" rx="12" fill="url(#railGlow)" opacity="0.16"/>
+    <rect x="448" y="108" width="230" height="86" rx="12" fill="none" stroke="#0d9488" stroke-width="2.5"/>
+    <text x="563" y="133" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f766e">RISK RAILS — in code</text>
+    <text x="563" y="153" text-anchor="middle" font-size="11.5" fill="#0f766e">cash floor · position caps</text>
+    <text x="563" y="169" text-anchor="middle" font-size="11.5" fill="#0f766e">stops · loss halt · limit-only</text>
+    <text x="563" y="185" text-anchor="middle" font-size="10.5" font-style="italic" fill="#0f766e">cannot be argued past</text>
+
+    <line x1="684" y1="151" x2="726" y2="151" stroke="#64748b" stroke-width="1.6" marker-end="url(#arw)"/>
+
+    <!-- broker -->
+    <rect x="732" y="120" width="128" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <text x="796" y="146" text-anchor="middle" font-size="13.5" font-weight="600" fill="#475569">broker</text>
+    <text x="796" y="165" text-anchor="middle" font-size="11.5" fill="#64748b">paper by default</text>
+  </g>
+
+  <!-- footer rule + note -->
+  <line x1="40" y1="216" x2="860" y2="216" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="40" y="238" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="11.5" fill="#94a3b8">Mechanical exits run BEFORE the model is called · every order is a limit order · four gates stand between this and real money</text>
+</svg>
