@@ -1,0 +1,83 @@
+{
+  "_comment": "STARTER universe \u2014 replace with your own. These are liquid large caps chosen only to make a first run work; they are not a recommendation.",
+  "stocks": [
+    {
+      "symbol": "SPY",
+      "name": "S&P 500 ETF",
+      "sector": "ETF",
+      "max_allocation": 0.1
+    },
+    {
+      "symbol": "QQQ",
+      "name": "Nasdaq 100 ETF",
+      "sector": "ETF",
+      "max_allocation": 0.1
+    },
+    {
+      "symbol": "AAPL",
+      "name": "Apple",
+      "sector": "Technology",
+      "max_allocation": 0.05
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft",
+      "sector": "Technology",
+      "max_allocation": 0.05
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA",
+      "sector": "Technology",
+      "max_allocation": 0.04
+    },
+    {
+      "symbol": "JPM",
+      "name": "JPMorgan Chase",
+      "sector": "Financials",
+      "max_allocation": 0.04
+    },
+    {
+      "symbol": "XOM",
+      "name": "Exxon Mobil",
+      "sector": "Energy",
+      "max_allocation": 0.04
+    },
+    {
+      "symbol": "JNJ",
+      "name": "Johnson & Johnson",
+      "sector": "Healthcare",
+      "max_allocation": 0.04
+    },
+    {
+      "symbol": "CAT",
+      "name": "Caterpillar",
+      "sector": "Industrials",
+      "max_allocation": 0.04
+    },
+    {
+      "symbol": "PG",
+      "name": "Procter & Gamble",
+      "sector": "Consumer Staples",
+      "max_allocation": 0.04
+    }
+  ],
+  "risk": {
+    "stop_loss_pct": 0.08,
+    "min_cash_reserve_pct": 0.2,
+    "limit_order_slippage": 0.002,
+    "min_buy_signal_score": 2,
+    "max_sell_signal_score": -2,
+    "options": {
+      "max_trade_premium_pct": 0.02,
+      "max_total_premium_pct": 0.05,
+      "stop_loss_pct": 0.5,
+      "take_profit_pct": 1.0,
+      "close_dte": 7,
+      "slippage": 0.01
+    }
+  },
+  "meta": {
+    "note": "risk block carried over from the reference implementation"
+  }
+}

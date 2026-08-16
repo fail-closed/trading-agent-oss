@@ -1,0 +1,13 @@
+alpaca-py>=0.33
+anthropic>=0.40
+pandas>=2.0
+numpy>=1.24
+yfinance>=0.2.40
+requests>=2.31
+python-dotenv>=1.0
+pytz
+# ML dip-confidence model (optional — the engine runs without it)
+scikit-learn>=1.3
+xgboost>=2.0
+# tests
+pytest>=8.0
