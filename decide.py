@@ -44,6 +44,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import alerts
+import archetype_gate
 import debate
 import entry_mix
 import ladder
@@ -1158,6 +1159,7 @@ def main():
     sig_meta = {s["symbol"]: {"conf": s.get("dip_confidence"), "atr_pct": s.get("atr_pct"),
                               "buy_notional": s.get("buy_notional"),
                               "entry_type": entry_mix.classify(s),
+                              "archetype_check": archetype_gate.check(s),
                               "earnings_blackout": bool(s.get("earnings_blackout")),
                               "days_to_earnings": s.get("days_to_earnings")}
                 for s in signals_data.get("signals", [])}
@@ -1228,6 +1230,22 @@ def main():
                 skipped_pre_order[symbol] = {"status": "blocked",
                                              "detail": f"split guard: {why}"}
                 continue
+
+            # ARCHETYPE GATE — a buy needs a thesis, not just a high score.
+            # Measured on a 987-name universe: `score_only` entries (score clears
+            # the threshold, but the name is neither a dip nor a breakout nor a
+            # momentum candidate) were 63% of all entries and -9.22%/yr excess,
+            # negative in every breadth band. See archetype_gate.py for the
+            # evidence and its caveats. Sells are untouched.
+            if action == "BUY":
+                _ok, _arch, _why = meta.get("archetype_check") or (
+                    False, None, "no signal row for this symbol")
+                if not _ok:
+                    print(f"  {symbol}: BUY BLOCKED — {_why}")
+                    rejected_alerts.append(f"🚫 BUY {symbol} blocked — {_why}")
+                    skipped_pre_order[symbol] = {"status": "blocked",
+                                                 "detail": f"archetype gate: {_why}"}
+                    continue
 
             # ML confidence gate for buys (skip very low confidence dips)
             if action == "BUY" and conf is not None and conf < DIP_SKIP_BELOW:

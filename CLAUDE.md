@@ -117,6 +117,16 @@ selection, on the largest notional of any mode. Read `buy_thresholds` and
 respect it; do not relax below it because cash is high. Deploying cash is a
 goal, not a licence to buy a setup with no edge.
 
+**The archetype requirement is not relaxable in any deploy mode.** Requiring a
+dip, breakout or momentum thesis (Deployment buying rule 6) removes roughly two
+thirds of the names that clear the score threshold, so cash *will* deploy more
+slowly and the 90-day average may sit under `target_invested` for a while. That is
+the intended effect, not a problem to solve: those entries measured −9.22%/yr. If
+the dip and breakout lists are empty, the correct action is **no trade** — do not
+fall back to buying a high score with no setup because the deployment target is
+behind. `decide.py` blocks it in code regardless, so the only thing a rationalised
+proposal costs is the session's time.
+
 ### What counts as a "dip" for deployment buying?
 A stock has `is_dip: true` when:
 - Price is **below its 20-day SMA** (pulled back from recent average)
@@ -169,7 +179,7 @@ These fields refine *entry conviction and timing*; they are confidence modifiers
 3. Volume quality filter: volume signal −1 = skip even in deployment mode
 4. **`overextended: true` (pct_b > 1.3) = HARD SKIP, no exceptions, any mode** — these stocks have been removed from your view by the system. If you somehow see one, do not buy it.
 5. **MACD gap check**: if the `gap` field in macd signals is marked "flat — gap below min threshold", treat MACD as neutral (0), not bullish/bearish
-6. **Score ≥ 2 without dip**: allowed only if `pct_b < 1.0` (price not above upper Bollinger band). If pct_b > 1.0 and `is_dip: false`, skip even at score +2 — lesson from SPG (+2, pct_b 1.845, bought and down on the day).
+6. **A buy needs an ARCHETYPE, not just a score.** Every buy must be one of: a dip (`is_dip`/`is_supported_dip`), a breakout (`is_breakout`), or a momentum candidate (`mom_rank ≥ 90`, sleeve enabled). **A high score with none of those is not a tradeable setup — do not propose it.** `decide.py` blocks it in code before the order is built, so proposing one only wastes the slot. The old rule here allowed score ≥ 2 without a dip when `pct_b < 1.0`; that path is closed. Measured on a 987-name universe over 3 years, those `score_only` entries were **63% of all entries and −9.22%/yr excess**, negative in every breadth band — the largest share of deployed capital going into the one entry type with no thesis behind it. (Not statistically significant on its own: t·day −1.42. What justifies the change is the consistent sign plus the fact that no buying mode in this file ever described it.)
 7. Still respect: cash reserve ≥ 20%, max_allocation per stock, earnings blackout, major negative news
 8. In AGGRESSIVE mode: up to `deploy_bands.max_buys_per_session` buys allowed (relaxed 3-trade limit — deploying cash urgently). Use the number in THIS session's `portfolio_status`, not a remembered default — the profiles differ.
 
@@ -383,7 +393,8 @@ If an exit was executed, note it in your summary. Do not re-enter the same posit
 2. Check the **Market Regime** — use the VIX-adjusted buy threshold
 3. **Check cash_pct** — if below 20%, skip all buys
 4. For each stock in `signals`:
-   - **score ≥ adjusted threshold → BUY** — if `allocation_headroom > 0` AND `weighted_score ≥ 2.0`, call `trade.py --notional = buy_notional`
+   - **score ≥ adjusted threshold AND an archetype → BUY** — the score is the *bar*, the archetype is the *reason*. Both are required: `is_dip`/`is_supported_dip`, `is_breakout`, or a momentum candidate (`mom_rank ≥ 90`, sleeve on). Then check `allocation_headroom > 0` AND `weighted_score ≥ 2.0`, and call `trade.py --notional = buy_notional`
+   - **score ≥ threshold but NO archetype → HOLD** — this is the `score_only` case. It is blocked in code (`archetype_gate.py`); see Deployment buying rule 6
    - **score ≤ −2 → SELL** — if we hold a position, call `trade.py --qty all`
    - **Otherwise → HOLD** — do nothing
 5. After all trades, summarize: what you traded, why, what you skipped, and any memory patterns applied

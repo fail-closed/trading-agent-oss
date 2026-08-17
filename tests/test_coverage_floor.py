@@ -89,8 +89,18 @@ def _modules():
 
     Returned as dotted import paths (`strategies.catalog`) so _is_covered can
     match how a test would actually import them.
+
+    `--others --exclude-standard` is load-bearing, not tidiness. Plain
+    `git ls-files` lists only TRACKED files, so a brand-new module was invisible to
+    this check until it was committed — which is the exact moment the check exists
+    for. Probed 2026-08-17: archetype_gate.py, a new module on the buy path with no
+    test at all, passed 3/3 while untracked and failed immediately once staged. An
+    author runs the suite before committing, sees green, and ships; CI catches it
+    only after the fact. Same failure shape as the `if "/" not in f` bug above — the
+    check didn't fail, it silently didn't apply.
     """
-    out = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT,
+    out = subprocess.run(["git", "ls-files", "--cached", "--others",
+                          "--exclude-standard", "*.py"], cwd=ROOT,
                          capture_output=True, text=True).stdout.split()
     mods = []
     for f in out:
@@ -138,6 +148,28 @@ def test_every_module_is_tested_or_consciously_exempted():
         "passes CI silently; this test is the only thing standing between that "
         "and the trade path."
     )
+
+
+def test_the_inventory_sees_an_untracked_new_module():
+    """The blind spot this closes: a new module is UNTRACKED while its author is
+    still working, and `git ls-files` without `--others` lists only tracked files.
+    So the one check meant to catch "shipped a module with no test" did not apply
+    at the only time the author was looking at it.
+
+    A dedup guard comes with it: a staged file appears in both --cached and
+    --others is not true (git excludes staged from --others), but an unstaged
+    modification could otherwise double-list.
+    """
+    probe = ROOT / "_coverage_floor_probe.py"
+    probe.write_text("# transient probe file\nX = 1\n")
+    try:
+        mods = _modules()
+        assert "_coverage_floor_probe" in mods, (
+            "an untracked module is invisible to the inventory — the tripwire does "
+            "not apply until the file is committed, which is too late")
+        assert len(mods) == len(set(mods)), "a module was listed twice"
+    finally:
+        probe.unlink()
 
 
 def test_exemptions_stay_honest():

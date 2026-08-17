@@ -428,6 +428,38 @@ might differ:
 .venv/bin/python -m studies.validate_universe --load walk.pkl
 ```
 
+### What that run changed: a buy needs a thesis
+
+`score_only` — score over the threshold, but the name is neither a dip nor a
+breakout nor a momentum candidate — was **63% of all entries** and the worst
+bucket. That is two thirds of deployed capital going into the one entry type no
+buying mode in [`CLAUDE.md`](CLAUDE.md) ever described.
+
+`archetype_gate.py` now refuses it, in code, before the order is built:
+
+```
+AAPL: BUY BLOCKED — no archetype — not a dip, not a breakout
+                    (momentum sleeve off); score +3 alone is not a thesis
+```
+
+Three notes on how that is done, because each is a choice:
+
+- **It is a code gate, not a prompt line.** The earnings blackout and the
+  corporate-action guard were both prose first, and both were violated in live
+  sessions before they became code. A rule that exists only in the prompt is a
+  preference. `CLAUDE.md` was updated too, so the model isn't asked to propose
+  what the code will reject.
+- **It fails closed but never touches sells.** No determinable archetype means no
+  buy; a missing signal row means no buy. Exits are never gated — refusing to let
+  a stop-loss out is the one failure that compounds.
+- **Momentum counts only while its sleeve is on.** Otherwise a high-`mom_rank`
+  name would satisfy the gate as "momentum" while the caps that govern that sleeve
+  are switched off — an unmanaged momentum book through the back door.
+
+Set `REQUIRE_ARCHETYPE=false` to restore the old behaviour. The honest case for
+the default is *not* the t-stat (−1.42, not significant): it is that the sign held
+in every breadth band, and that nothing designed this path in the first place.
+
 ### A session
 
 ```
