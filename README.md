@@ -37,8 +37,9 @@ lose money is decided elsewhere, in Python, under test.
 > thresholds in [`CLAUDE.md`](CLAUDE.md) were fitted to one 198-name universe over
 > 2021–2026 and are published so you can see the reasoning, not so you can run
 > them. Markets change; fitted parameters do not. Automated trading can lose money
-> faster than manual trading, including while you are asleep. See [LICENSE](LICENSE)
-> — there is no warranty of any kind.
+> faster than manual trading, including while you are asleep. See
+> **[DISCLAIMER.md](DISCLAIMER.md)** and [LICENSE](LICENSE) — there is no warranty
+> of any kind.
 
 ## Provenance
 
@@ -291,5 +292,10 @@ Issues and PRs welcome. Two asks, both drawn from the notes above:
 
 ## License
 
-[MIT](LICENSE), with an explicit financial-software notice. No warranty. You are
-responsible for orders placed by software you run, whether or not you were awake.
+[MIT](LICENSE) — verbatim, so it is machine-detectable.
+
+The financial-software caveats live in **[DISCLAIMER.md](DISCLAIMER.md)**, kept
+separate on purpose: appending them to `LICENSE` made GitHub classify the whole
+file as `NOASSERTION`, which helps nobody. Read it before running this against
+real money. No warranty; you are responsible for orders placed by software you
+run, whether or not you were awake.
