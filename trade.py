@@ -198,7 +198,16 @@ def main():
     held_value = float(position.market_value) if position else 0.0
 
     # Feature flags (default OFF → no behavior change; enabled per-service in env).
-    adv_max_pct = float(os.getenv("ADV_MAX_PCT", "0") or 0)    # e.g. 0.01 = ≤1% of ADV
+    # ON by default at 1% of 20-day average dollar volume. It was 0 (off), which
+    # was defensible for a hand-picked 30-name list where every symbol was known
+    # liquid — and is not, once the universe is built by rank. A name that cleared
+    # the liquidity floor at the monthly rebuild can have its volume collapse
+    # weeks later; this is the only check that looks at TODAY'S volume at order
+    # time. At the $7.7M/day floor a liquidity-ranked universe produces, 1% is
+    # $77k — orders of magnitude above anything this sizer places, so it is
+    # non-binding for normal names and only bites when a name has genuinely dried
+    # up. Set ADV_MAX_PCT=0 to disable.
+    adv_max_pct = float(os.getenv("ADV_MAX_PCT", "0.01") or 0)  # 0.01 = ≤1% of ADV
     bar_stats = (daily_stats(data_client, symbol)   # ATR knob owned by stops.py
                  if args.side == "buy" and (adv_max_pct > 0 or stops.atr_stop_enabled()) else {})
 

@@ -83,8 +83,14 @@ def _fetch(symbol: str) -> dict:
 
         t = yf.Ticker(symbol)
         cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=LOOKBACK_DAYS)
-        out = {"splits": {}, "next_ex_div": None}
+        out = {"splits": {}, "next_ex_div": None, "ok": False}
 
+        # `ok` exists because {} previously meant BOTH "no splits" and "the
+        # lookup failed". Those demand opposite responses: the first is a clean
+        # signal, the second means the price series may be unadjusted and every
+        # indicator derived from it is suspect. At 30 names an occasional failure
+        # was noise; at 1,000 it is routine, and silently reading it as "no
+        # splits" is a fail-open on the exact defect this module exists to catch.
         try:
             sp = t.splits
             if sp is not None and len(sp):
@@ -94,8 +100,10 @@ def _fetch(symbol: str) -> dict:
                 for ts, ratio in zip(idx, sp.values):
                     if ts >= cutoff and float(ratio) > 0:
                         out["splits"][ts.date().isoformat()] = float(ratio)
-        except Exception:
-            pass
+            out["ok"] = True
+        except Exception as e:
+            out["ok"] = False
+            out["error"] = str(e)[:80]
 
         try:
             cal = t.calendar or {}
@@ -119,15 +127,36 @@ def fetch_all(symbols: list) -> dict:
     cache = _load_cache()
     out = {}
     dirty = False
+    todo = []
     for sym in symbols:
         entry = cache.get(sym)
         if entry and entry.get("date") == today:
             out[sym] = entry.get("data", {})
-            continue
-        data = _fetch(sym)
-        cache[sym] = {"date": today, "data": data}
-        out[sym] = data
-        dirty = True
+        else:
+            todo.append(sym)
+
+    # Fetched in parallel. Sequentially this is one network round-trip per symbol:
+    # fine for 30 names, ~1,000 round-trips for a liquidity-ranked universe, which
+    # is slow enough that partial failure becomes the normal case rather than the
+    # exception. Bounded at 8 workers to stay polite to the data source.
+    if todo:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=int(os.getenv("CORP_ACTION_WORKERS", "8"))) as ex:
+            futures = {ex.submit(_fetch, s): s for s in todo}
+            for fut in as_completed(futures):
+                sym = futures[fut]
+                try:
+                    data = fut.result()
+                except Exception as e:                       # pragma: no cover
+                    data = {"splits": {}, "next_ex_div": None, "ok": False,
+                            "error": str(e)[:80]}
+                out[sym] = data
+                # Only a SUCCESSFUL lookup is cached for the day. Caching a
+                # failure would turn one rate-limit into a whole session — and a
+                # silent one, since the cached {} reads as "no splits".
+                if data.get("ok"):
+                    cache[sym] = {"date": today, "data": data}
+                    dirty = True
     if dirty:
         _save_cache(cache)
     return out
@@ -199,3 +228,24 @@ if __name__ == "__main__":
     import json
     syms = sys.argv[1:] or ["KLAC", "WDC", "AAPL"]
     print(json.dumps(fetch_all(syms), indent=2, default=str))
+
+
+def coverage(actions: dict) -> dict:
+    """How much of the universe we actually have split data for.
+
+    research.py prints this. A universe where 300 of 1,000 lookups failed is one
+    where 300 names may be running on unadjusted prices, and that has to be
+    visible rather than inferred from a suspiciously low split count.
+    """
+    total = len(actions)
+    ok = sum(1 for v in actions.values() if v.get("ok"))
+    with_splits = sum(1 for v in actions.values() if v.get("splits"))
+    return {"total": total, "ok": ok, "failed": total - ok,
+            "with_splits": with_splits,
+            "pct_ok": round(ok / total * 100, 1) if total else 0.0}
+
+
+def data_ok(actions: dict, symbol: str) -> bool:
+    """False when we could not establish this symbol's split history — the caller
+    should treat its moving averages as unverified, not as clean."""
+    return bool((actions.get(symbol) or {}).get("ok"))

@@ -819,9 +819,16 @@ def main():
     try:
         import corporate_actions
         corp_actions = corporate_actions.fetch_all(symbols)
-        _n_splits = sum(1 for v in corp_actions.values() if v.get("splits"))
-        print(f"  Corporate actions: {_n_splits}/{len(symbols)} symbols have splits "
-              f"in the lookback", file=sys.stderr)
+        _cov = corporate_actions.coverage(corp_actions)
+        print(f"  Corporate actions: {_cov['with_splits']}/{_cov['total']} have splits; "
+              f"lookup succeeded for {_cov['ok']} ({_cov['pct_ok']}%)", file=sys.stderr)
+        if _cov["failed"]:
+            # Loud on purpose. These names may be running on unadjusted prices,
+            # and the old code could not tell you because a failure and a clean
+            # "no splits" were the same empty dict.
+            print(f"  ⚠ {_cov['failed']} split lookup(s) FAILED — those names carry "
+                  f"split_data_ok=false and their averages are unverified",
+                  file=sys.stderr)
     except Exception as e:
         corp_actions = {}
         print(f"  corporate actions skipped (non-fatal): {e}", file=sys.stderr)
@@ -1070,6 +1077,30 @@ def main():
         _split_pct = float(os.getenv("SPLIT_GUARD_PCT", "0.35"))
         price_vs_sma20 = ((price - sma20) / sma20) if sma20 else 0.0
         split_suspect = bool(sma20) and abs(price_vs_sma20) >= _split_pct
+
+        # The magnitude test above only catches BIG splits. A 2:1 moves price
+        # −50% vs SMA20 and trips it; a 3:2 moves it −33% and slips under the 35%
+        # threshold, and a 5:4 moves it −20%. Those ratios are common, and at a
+        # 1,000-name universe they arrive weekly rather than quarterly.
+        #
+        # So when we actually HAVE split data, use it: a split inside the SMA20
+        # window contaminates that average regardless of how large it was.
+        _sym_ca = (corp_actions.get(sym) or {})
+        _recent_split = False
+        if _sym_ca.get("splits"):
+            _cut = (datetime.now(ET).date() - timedelta(days=30)).isoformat()
+            _recent_split = any(d >= _cut for d in _sym_ca["splits"])
+            if _recent_split and not split_suspect:
+                print(f"  SPLIT GUARD: {sym} had a split in the last 30d "
+                      f"(ratio {list(_sym_ca['splits'].values())}) — under the "
+                      f"{_split_pct*100:.0f}% magnitude test but the SMA20 window "
+                      f"still spans it; buys blocked", file=sys.stderr)
+
+        # And when we have NO data, say so rather than assuming clean. A failed
+        # lookup used to be indistinguishable from "no splits" (corporate_actions
+        # returned {} for both), which is a fail-open on exactly this defect.
+        _split_data_ok = _sym_ca.get("ok", False) if corp_actions else False
+        split_suspect = split_suspect or _recent_split
         if split_suspect:
             print(f"  SPLIT GUARD: {sym} price ${price:,.2f} is {price_vs_sma20*100:+.1f}% "
                   f"vs SMA20 ${sma20:,.2f} — indicators unreliable, buys blocked",
@@ -1102,6 +1133,10 @@ def main():
             # Hard buy-block: decide.py refuses any BUY on a suspect symbol, the
             # same way it refuses one below the dip_confidence floor.
             "split_suspect":       split_suspect,
+            # False = we could not establish this name's split history, so its
+            # moving averages are unverified rather than known-clean.
+            "split_data_ok":       _split_data_ok,
+            "recent_split":        _recent_split,
             "price_vs_sma20_pct":  round(price_vs_sma20 * 100, 2),
             "is_dip":              is_dip,
             "is_supported_dip":    is_supported_dip,
