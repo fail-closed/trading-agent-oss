@@ -356,8 +356,10 @@ than company size. It preserves your `risk` block, caps `max_allocation` below t
 counts are printed because "top 1000 by liquidity" hides six judgement calls.
 
 > A wider universe needs `signal_rank.py` (shipped) so the prompt stays bounded —
-> and your own re-validation. **The Sharpe and alpha figures below were measured on
-> a 198-name universe and do not transfer.**
+> and your own re-validation. **The Sharpe and alpha figures in "Four payoff
+> sources" above were measured on a 198-name universe and do not transfer to a
+> universe you build.** The validation run below is what re-deriving them on 987
+> names actually produced.
 
 ### Check your own universe before trusting it
 
@@ -370,20 +372,61 @@ names over the same days* — the only benchmark that separates skill from marke
 drift. It imports the indicator functions from `research.py` rather than
 reimplementing them, so it measures the strategy you actually run.
 
-A real run on the shipped 10-name starter list:
+A real run on a **987-name** universe built by `universe_builder.py`, 3 years,
+5-day hold, 5bp costs each way:
 
 ```
-  entry             n  excess/trade  annualised   Sharpe      t  verdict
-  breakout         50        0.256%      12.90%     0.59   0.59  indistinguishable from luck
-  dip              70       -0.258%     -13.02%    -0.58  -0.68  NEGATIVE — indistinguishable from luck
-  score_only      299       -0.148%      -7.45%    -0.35  -0.86  NEGATIVE — indistinguishable from luck
+  entry             n  days  excess/trade  annualised   Sharpe  t·pool  t·day  verdict
+  breakout       5820   277        0.185%       9.32%     0.18    1.92   2.02  suggestive, not significant
+  dip            5854   272       -0.134%      -6.73%    -0.17   -1.88   0.57  NEGATIVE — indistinguishable from luck
+  score_only    19523   424       -0.183%      -9.22%    -0.23   -4.50  -1.42  NEGATIVE — suggestive, not significant
 ```
 
-Note what it does *not* do: no t-stat clears 2, and it says so in words rather
-than letting +12.90% stand unqualified. It also states that it is in-sample and
-survivorship-flattered every time it runs. The direction — breakout positive, dip
-negative — independently matches the 198-name decomposition, which is the most
-that can honestly be claimed from n=50.
+**Nothing here is significant, and the two columns explain why that is the honest
+answer rather than a disappointing one.**
+
+`t·pool` treats every trade as an independent observation. At 987 names the walk
+opens ~8 trades on a typical day and up to 288 on a wide one, and those share the
+day's sector and style moves — so pooling multiplies the apparent sample size
+without adding information. `t·day` averages within each day and tests across
+days. It is the column the verdicts use, against a bar of 2.4 rather than 2.0
+because three archetypes were tested on one dataset. `score_only`'s headline
+−4.50 collapses to −1.42 under that correction; it was the least trustworthy
+number on the page, not the most.
+
+The tool also refuses to resolve its own ambiguity in the flattering direction.
+Dip comes out **negative per trade and positive per day**, and rather than
+printing whichever suits, it prints both plus the reason:
+
+```
+  BREADTH WARNING — weighting changes the SIGN for: dip
+    dip          per-trade -0.134%   per-day +0.174%   breadth median 13 max 288
+                 single-trade days: 89 of 272 (33% of the day-weight), mean +0.585% sd 7.91%
+                 days with >=21 names (101 days, 4932 trades): -0.139%  <- the quiet estimate
+```
+
+A third of dip days carry exactly one trade. Equal-weighting days hands those 89
+singletons a third of the total weight at ~8% standard deviation each — enough to
+flip the sign on noise alone. The wide-day figure, where each day's mean is itself
+an average of many names, is −0.139%. The conclusion drawn is to trust *neither*
+headline.
+
+What survives all of that is only a direction, and only a weak one: breakout is
+positive in both the bulk and the tail, dip and `score_only` are not. That matches
+the independent 198-name factor decomposition — but at t·day 2.02 against a 2.4
+bar, it is a tilt, not a mandate. The report states on every run that it is
+in-sample and survivorship-flattered, and survivorship bites *harder* at 987 names
+than at 10: the universe is built from names tradable today, so three years of
+delistings down at the $7.7M/day liquidity floor are silently absent.
+
+A walk this size takes minutes, so `--dump` caches it and `--load` re-reports it.
+Follow-up questions come from the same numbers rather than a second walk that
+might differ:
+
+```bash
+.venv/bin/python -m studies.validate_universe --years 3 --dump walk.pkl
+.venv/bin/python -m studies.validate_universe --load walk.pkl
+```
 
 ### A session
 

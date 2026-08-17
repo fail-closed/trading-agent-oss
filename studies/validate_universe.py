@@ -35,9 +35,22 @@ WHAT IT CANNOT TELL YOU
   harness does NOT correct for it and cannot — the delisted names are simply not
   in the asset list any more. Treat the numbers as an upper bound.
 
-A t-statistic below ~2 means the result is indistinguishable from luck at this
-sample size. The report says so in words, because a Sharpe ratio printed without
-its t-stat is the most common way a backtest lies.
+HOW SIGNIFICANCE IS JUDGED, AND WHY NOT THE OBVIOUS WAY
+-------------------------------------------------------
+Two corrections separate this from the naive version, and at a 1,000-name
+universe they are the difference between a headline and a non-result:
+
+* **Clustering by date.** Trades opened on the same day are not independent —
+  they share that day's sector and style moves. A t-stat over pooled trades
+  treats 8 correlated bets as 8 independent draws. The report's verdict uses
+  `t·day`: excess averaged within each day, tested across days. See
+  `daily_means`.
+* **Three archetypes, one dataset.** Testing breakout, dip and score_only and
+  then reporting the best is three coin flips. The bar for "significant" is
+  raised above 2.0 accordingly.
+
+A Sharpe ratio printed without its t-stat is the most common way a backtest
+lies; a t-stat computed over correlated observations is the second.
 """
 import argparse
 import json
@@ -171,8 +184,179 @@ def run(hist, hold=5, min_score=2, costs_bps=5.0, stride=5):
     return excess, per_day
 
 
+def daily_means(per_day, cost):
+    """Excess averaged WITHIN each day, per archetype: {arch: [day_mean, ...]}.
+
+    THIS IS THE CORRECTION THAT MATTERS FOR SIGNIFICANCE. Trades opened on the
+    same day are not independent observations — they share that day's market,
+    sector and factor moves. Subtracting the equal-weight benchmark removes the
+    common market component, but sector and style co-movement survive it. A
+    t-statistic computed over pooled trades therefore treats a few hundred
+    correlated bets as a few hundred independent draws, and overstates
+    significance by up to sqrt(trades per day).
+
+    Averaging within the day and testing across days is the standard
+    cluster-by-date fix: the sample size becomes the number of days, which is the
+    number of genuinely independent draws the walk produced. It is the
+    conservative choice — perfectly correlated same-day trades would make it
+    exactly right, and uncorrelated ones would make it merely pessimistic.
+    """
+    out = {}
+    for _d, rec in per_day.items():
+        if not rec.get("bench"):
+            continue
+        bench = statistics.fmean(rec["bench"])
+        buckets = {}
+        for arch, fr, _sym in rec.get("entries", []):
+            buckets.setdefault(arch, []).append(fr - cost - bench)
+        for arch, xs in buckets.items():
+            out.setdefault(arch, []).append(statistics.fmean(xs))
+    return out
+
+
+def _corr(xs, ys):
+    """Pearson r, or None when the sample cannot support one."""
+    if len(xs) < 3 or len(set(xs)) < 2 or len(set(ys)) < 2:
+        return None
+    try:
+        return round(statistics.correlation(xs, ys), 3)
+    except (statistics.StatisticsError, ValueError):
+        return None
+
+
+# A day on which at least this many names fired is treated as "wide". Above it the
+# day's own mean is an average of many names, so it is a far quieter estimate than
+# a day carrying a single trade.
+WIDE_BREADTH = 21
+
+
+def breadth(per_day, cost):
+    """Per archetype: how many names fired each day, and how that skew moves the mean.
+
+    WHY THIS IS WORTH A SECTION OF ITS OWN. The pooled mean weights each day by how
+    many trades it produced; the day-clustered mean weights every day equally.
+    Those answer different questions:
+
+        trade-weighted — "what did the average TRADE earn?"  (fixed size per NAME)
+        day-weighted   — "what did the average DAY earn?"     (fixed size per SESSION)
+
+    Neither is wrong. This system caps buys per session, so the day-weighted figure
+    is the closer analogue of what it would have earned — but it has a defect worth
+    naming, and the 1,000-name run is what exposed it.
+
+    THE DEFECT: breadth is wildly skewed. On the real run a third of dip days
+    carried exactly ONE trade, while the widest carried 288. Day-weighting hands
+    those 89 singleton days a third of the total weight, and a singleton day's
+    "mean" is one trade with ~8% standard deviation. So the day-weighted mean can
+    flip sign purely on singleton noise, with no relationship whatsoever between
+    breadth and outcome.
+
+    WHAT THIS DELIBERATELY DOES NOT CLAIM: an earlier version of this function
+    asserted that a negative breadth/excess correlation meant the archetype "fires
+    widest on its worst days". On the real data that correlation was -0.039
+    (Spearman -0.021) — no relationship — while the sign still flipped. The
+    correlation is retained below for completeness but is near-useless on a count
+    variable this skewed, and nothing here relies on it. The singleton share and
+    the wide-day mean are what actually explain the divergence.
+    """
+    counts, means = {}, {}
+    for _d, rec in per_day.items():
+        if not rec.get("bench"):
+            continue
+        bench = statistics.fmean(rec["bench"])
+        buckets = {}
+        for arch, fr, _sym in rec.get("entries", []):
+            buckets.setdefault(arch, []).append(fr - cost - bench)
+        for arch, xs in buckets.items():
+            counts.setdefault(arch, []).append(len(xs))
+            means.setdefault(arch, []).append(statistics.fmean(xs))
+
+    out = {}
+    for arch, ms in means.items():
+        cs = counts[arch]
+        total = sum(cs)
+        singles = [m for c, m in zip(cs, ms) if c == 1]
+        wide = [(c, m) for c, m in zip(cs, ms) if c >= WIDE_BREADTH]
+        wide_trades = sum(c for c, _ in wide)
+        out[arch] = {
+            "days": len(ms),
+            "median_breadth": round(statistics.median(cs), 1),
+            "max_breadth": max(cs),
+            "corr_breadth_excess": _corr(cs, ms),   # see docstring: not load-bearing
+            # trade-weighted = pooled: each day counts in proportion to its trades
+            "trade_weighted_pct": round(
+                sum(c * m for c, m in zip(cs, ms)) / total * 100, 3) if total else 0.0,
+            "day_weighted_pct": round(statistics.fmean(ms) * 100, 3),
+            # the singleton problem, quantified
+            "singleton_days": len(singles),
+            "singleton_day_share": round(len(singles) / len(ms), 3),
+            "singleton_mean_pct": round(statistics.fmean(singles) * 100, 3) if singles else None,
+            "singleton_sd_pct": (round(statistics.stdev(singles) * 100, 2)
+                                 if len(singles) > 1 else None),
+            # the quiet estimate: days broad enough that the day-mean is itself an average
+            "wide_days": len(wide),
+            "wide_trades": wide_trades,
+            "wide_mean_pct": (round(sum(c * m for c, m in wide) / wide_trades * 100, 3)
+                              if wide_trades else None),
+        }
+    return out
+
+
+def breadth_note(per_day, cost):
+    """Lines for the report — emitted ONLY when a weighting changes the sign, since
+    that is the case a reader must not miss.
+
+    It reports the singleton share and the wide-day mean rather than a correlation,
+    because on the real run the correlation was flat while the sign flipped.
+    """
+    b = breadth(per_day, cost)
+    flipped = [a for a, v in b.items()
+               if v["trade_weighted_pct"] * v["day_weighted_pct"] < 0]
+    if not flipped:
+        return []
+    lines = ["", "  BREADTH WARNING — weighting changes the SIGN for: "
+                 + ", ".join(sorted(flipped)), ""]
+    for arch in sorted(flipped):
+        v = b[arch]
+        lines += [
+            f"    {arch:<12} per-trade {v['trade_weighted_pct']:+.3f}%   "
+            f"per-day {v['day_weighted_pct']:+.3f}%   "
+            f"breadth median {v['median_breadth']:.0f} max {v['max_breadth']}",
+            f"    {'':<12} single-trade days: {v['singleton_days']} of {v['days']} "
+            f"({v['singleton_day_share']*100:.0f}% of the day-weight), "
+            f"mean {v['singleton_mean_pct']:+.3f}% sd {v['singleton_sd_pct']}%",
+            f"    {'':<12} days with >={WIDE_BREADTH} names "
+            f"({v['wide_days']} days, {v['wide_trades']} trades): "
+            f"{v['wide_mean_pct']:+.3f}%  <- the quiet estimate",
+        ]
+    lines += [
+        "",
+        "  Per-trade assumes fixed size per NAME; per-day assumes fixed size per",
+        "  SESSION. This system caps buys per session, so per-day is the closer",
+        "  analogue — but breadth is skewed enough that single-trade days can carry",
+        "  a third of the day-weight at ~8% standard deviation each, which is enough",
+        "  to flip the sign on noise alone. Read the wide-day figure as the estimate",
+        "  with the least sampling noise in it, and treat the divergence as a reason",
+        "  to trust NEITHER headline rather than to pick the flattering one.",
+    ]
+    return lines
+
+
+def _t(xs):
+    """Two-sided t against zero, or None when the sample cannot support one."""
+    if len(xs) < 2:
+        return None
+    mean, sd = statistics.fmean(xs), statistics.stdev(xs)
+    return round(mean / (sd / math.sqrt(len(xs))), 2) if sd else 0.0
+
+
 def stats(xs, hold):
-    """n, mean excess per trade, annualised Sharpe of the excess, and a t-stat."""
+    """n, mean excess per trade, annualised Sharpe of the excess, and a t-stat.
+
+    `t_stat` here is the POOLED, per-trade figure. It is retained because it is
+    what most backtests print, but `daily_means` explains why the verdict is not
+    based on it.
+    """
     n = len(xs)
     if n < 2:
         return {"n": n}
@@ -187,37 +371,58 @@ def stats(xs, hold):
     }
 
 
-def report(excess, per_day, hold, universe_n, years):
+def report(excess, per_day, hold, universe_n, years, costs_bps=5.0, archetypes=3):
+    daily = daily_means(per_day, costs_bps / 10_000 * 2)
     lines = [
         "",
         f"  Universe {universe_n} names · {years}y · {hold}-day hold · "
         f"{len(per_day)} sample days",
         f"  Benchmark: equal-weight the SAME universe over the SAME days.",
         "",
-        f"  {'entry':<12}{'n':>7}{'excess/trade':>14}{'annualised':>12}"
-        f"{'Sharpe':>9}{'t':>7}  verdict",
-        f"  {'-'*12}{'-'*7}{'-'*14}{'-'*12}{'-'*9}{'-'*7}  {'-'*22}",
+        f"  {'entry':<12}{'n':>7}{'days':>6}{'excess/trade':>14}{'annualised':>12}"
+        f"{'Sharpe':>9}{'t·pool':>8}{'t·day':>7}  verdict",
+        f"  {'-'*12}{'-'*7}{'-'*6}{'-'*14}{'-'*12}{'-'*9}{'-'*8}{'-'*7}  {'-'*30}",
     ]
+    # Three archetypes tested on one dataset: the threshold for "significant"
+    # rises accordingly, or we would be reporting the best of three coin flips.
+    bar = 2.0 + (0.4 if archetypes >= 3 else 0.0)
     for arch in ("breakout", "dip", "score_only"):
         xs = excess.get(arch, [])
         st = stats(xs, hold)
         if st.get("n", 0) < 2:
-            lines.append(f"  {arch:<12}{st.get('n', 0):>7}{'—':>14}"
-                         f"{'—':>12}{'—':>9}{'—':>7}  too few entries")
+            lines.append(f"  {arch:<12}{st.get('n', 0):>7}{'—':>6}{'—':>14}"
+                         f"{'—':>12}{'—':>9}{'—':>8}{'—':>7}  too few entries")
             continue
-        t = abs(st["t_stat"])
-        verdict = ("significant" if t >= 2.0 else
+        dxs = daily.get(arch, [])
+        td = _t(dxs)
+        # The verdict uses the day-clustered t when there is one. Falling back to
+        # the pooled figure is flagged, because it is the optimistic one.
+        t = abs(td) if td is not None else abs(st["t_stat"])
+        verdict = ("significant" if t >= bar else
                    "suggestive, not significant" if t >= 1.0 else
                    "indistinguishable from luck")
         if st["annual_excess_pct"] < 0:
             verdict = "NEGATIVE — " + verdict
-        lines += [f"  {arch:<12}{st['n']:>7}{st['mean_excess_pct']:>13.3f}%"
+        if td is None:
+            verdict += " (pooled t — no day clusters)"
+        lines += [f"  {arch:<12}{st['n']:>7}{len(dxs):>6}"
+                  f"{st['mean_excess_pct']:>13.3f}%"
                   f"{st['annual_excess_pct']:>11.2f}%{st['sharpe']:>9.2f}"
-                  f"{st['t_stat']:>7.2f}  {verdict}"]
+                  f"{st['t_stat']:>8.2f}"
+                  f"{(f'{td:.2f}' if td is not None else '—'):>7}  {verdict}"]
+    lines += breadth_note(per_day, costs_bps / 10_000 * 2)
     lines += [
         "",
-        "  A t-stat below ~2 means this sample cannot distinguish the result from",
-        "  luck. Sharpe without n and t is the most common way a backtest lies.",
+        f"  VERDICTS USE t·day AND A BAR OF {bar}, NOT t·pool AND 2.0.",
+        "  t·pool treats every trade as an independent observation. Trades opened on",
+        "  the same day share that day's sector and style moves, so t·pool is",
+        "  inflated by up to sqrt(trades per day) — here that is the difference",
+        "  between a headline and a non-result. t·day averages within each day and",
+        "  tests across days, so n becomes the number of independent draws. The bar",
+        "  is raised above 2.0 because three archetypes were tested on one dataset.",
+        "",
+        "  Sharpe and excess/trade are per-trade figures and are NOT corrected for",
+        "  this. They describe the average trade, not the confidence in it.",
         "",
         "  IN-SAMPLE: these rules were developed on data overlapping this window.",
         "  A good result here is necessary, not sufficient. Survivorship also",
@@ -238,7 +443,25 @@ def main(argv=None):
                     help="sample every Nth day; 1 is exhaustive and slow")
     ap.add_argument("--watchlist", default=None)
     ap.add_argument("--limit", type=int, default=0, help="first N symbols only (smoke test)")
+    # A 1,000-name walk is ~190k indicator computations and takes minutes. Asking a
+    # second question of the same walk should not mean paying for it twice — and
+    # re-running to answer a follow-up is how people end up reporting two results
+    # computed from subtly different data.
+    ap.add_argument("--dump", default=None, metavar="PATH",
+                    help="pickle (excess, per_day) after the walk for later analysis")
+    ap.add_argument("--load", default=None, metavar="PATH",
+                    help="skip fetching and walking; re-report a previous --dump")
     a = ap.parse_args(argv)
+
+    if a.load:
+        import pickle
+        with open(a.load, "rb") as fh:
+            excess, per_day, meta = pickle.load(fh)
+        print(f"  loaded walk of {meta['universe_n']} names from {a.load}",
+              file=sys.stderr)
+        print(report(excess, per_day, meta["hold"], meta["universe_n"],
+                     meta["years"], meta["costs_bps"]))
+        return 0
 
     syms = load_universe(a.watchlist)
     if a.limit:
@@ -250,7 +473,15 @@ def main(argv=None):
         return 1
     print(f"  usable histories: {len(hist)}/{len(syms)}", file=sys.stderr)
     excess, per_day = run(hist, a.hold, a.min_score, a.costs_bps, a.stride)
-    print(report(excess, per_day, a.hold, len(hist), a.years))
+    if a.dump:
+        import pickle
+        meta = {"hold": a.hold, "years": a.years, "costs_bps": a.costs_bps,
+                "universe_n": len(hist), "stride": a.stride,
+                "min_score": a.min_score}
+        with open(a.dump, "wb") as fh:
+            pickle.dump((excess, per_day, meta), fh)
+        print(f"  dumped walk to {a.dump}", file=sys.stderr)
+    print(report(excess, per_day, a.hold, len(hist), a.years, a.costs_bps))
     return 0
 
 
