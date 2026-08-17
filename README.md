@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-264_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-282_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -53,15 +53,22 @@ decision. Not one call per agent, per ticker, per round.
 | | Input | Output | Cost |
 |---|---|---|---|
 | `macro_context.py` | ~10k | ~1k | $0.045 |
-| `decide.py` | ~18k | ~1.5k | $0.076 |
-| **per session** | | | **$0.12** |
-| **per month** (21 trading days) | | | **≈ $2.55** |
+| `decide.py` | ~38k | ~10.5k | $0.27 |
+| **per session** | | | **$0.27** |
+| **per month** (21 trading days) | | | **≈ $5.71** |
 
-*Sonnet 4.6 list price, $3/$15 per million tokens. Input sizes measured from a
-real 30-symbol signals file plus the `CLAUDE.md` system prompt.*
+*Sonnet 4.6 list price, $3/$15 per million tokens. Measured, not estimated: input
+from real signals files plus the `CLAUDE.md` system prompt, output from 12 real
+decision logs at 72 tokens per returned decision.*
+
+**And it stays there as the universe grows.** `signal_rank.py` sends the model a
+ranked, budgeted slice — 150 signals — rather than everything above a score
+threshold. Cost and truncation risk are therefore flat in universe size: 1,000
+names costs what 198 does. Without it, a 500-name universe exceeds `max_tokens`
+and the call fails outright.
 
 Add the broker — an Alpaca **paper** account is free — and the whole thing runs
-for the price of a coffee. `FRED` and Polymarket are free. `research.py` needs
+for the price of a coffee or two. `FRED` and Polymarket are free. `research.py` needs
 **no LLM key at all**, so the entire signal engine costs nothing and you can run
 it as often as you like.
 
@@ -319,7 +326,7 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 264 tests
+pytest -q                     # 282 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -350,7 +357,7 @@ not shipped.
 
 ## Tests as a design tool
 
-264 tests, and the interesting ones do not check behaviour — they make a class of
+282 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |

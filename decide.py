@@ -53,6 +53,7 @@ import ladder
 # shared with trade.py (initial GTC distance) and stop_monitor.py (5-min hard
 # exit + fractional-position ratchet). Never re-inline them here; tests/
 # test_stop_rule.py fails CI if any file does.
+import signal_rank
 import stops
 TAKE_PROFIT_FULL    = stops.TAKE_PROFIT_FULL       # +20% → sell all
 TAKE_PROFIT_PARTIAL = stops.TAKE_PROFIT_PARTIAL    # +10% → sell half
@@ -819,12 +820,20 @@ def ask_claude(signals_data: dict, claude_md: str, intraday_data=None,
                 result.append(s)
         return result
 
-    trimmed = {**signals_data, "signals": trim_signals(signals_data.get("signals", []))}
+    # Rank-and-budget AFTER the filters above. trim_signals answers "is this
+    # eligible?"; signal_rank answers "does it fit?" — the second question only
+    # started mattering when the universe grew past a few hundred names, where
+    # `abs(score) >= 1` (73% of the universe, measured) truncates the reply.
+    _eligible = trim_signals(signals_data.get("signals", []))
+    _ranked, _rank_report = signal_rank.select(_eligible)
+    print(f"  {signal_rank.summarise(_rank_report)}", file=sys.stderr)
+    trimmed = {**signals_data, "signals": _ranked}
     hold_count = len(signals_data.get("signals", [])) - len(trimmed["signals"])
 
     if intraday_data:
-        trimmed_intra = {**intraday_data,
-                         "signals": trim_signals(intraday_data.get("signals", []))}
+        _intra_ranked, _ = signal_rank.select(
+            trim_signals(intraday_data.get("signals", [])))
+        trimmed_intra = {**intraday_data, "signals": _intra_ranked}
         signal_content = (
             f"Today is {signals_data['date']}. Time: {intraday_data['time']} ET.\n"
             f"({hold_count} score-0 symbols with no position omitted — all HOLD, no action needed.)\n\n"
