@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 734 658" width="734" height="658" role="img" aria-label="Terminal recording: setup_wizard.py — finishing up">
+<rect width="734" height="658" rx="10" fill="#0d1117"/>
+<circle cx="20" cy="18" r="5.5" fill="#f85149"/>
+<circle cx="39" cy="18" r="5.5" fill="#d29922"/>
+<circle cx="58" cy="18" r="5.5" fill="#3fb950"/>
+<text x="367" y="22" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11.5" fill="#8b949e">setup_wizard.py — finishing up</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">
+<text x="18" y="48" fill="#39c5cf" font-weight="600" xml:space="preserve">  Step 7/8 — Proving it works</text>
+<text x="18" y="67" fill="#8b949e" xml:space="preserve">  ──────────────────────────────</text>
+<text x="18" y="86" fill="#3fb950" xml:space="preserve">  ✓ wrote .env (permissions 0600 — only you can read it)</text>
+<text x="18" y="105" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="124" fill="#c9d1d9" xml:space="preserve">  Running the signal engine once. This fetches real market data and</text>
+<text x="18" y="143" fill="#c9d1d9" xml:space="preserve">  scores your watchlist. It places NO orders.</text>
+<text x="18" y="162" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="181" fill="#c9d1d9" xml:space="preserve">  run it now? (takes 30-60 seconds) [y]: y</text>
+<text x="18" y="200" fill="#c9d1d9" xml:space="preserve">  Deploy mode: STANDARD | Invested: 0% | Dip candidates: 3</text>
+<text x="18" y="219" fill="#c9d1d9" xml:space="preserve">  Signals written to signals/2026-08-17.json</text>
+<text x="18" y="238" fill="#3fb950" xml:space="preserve">  ✓ the engine ran and wrote a signals file</text>
+<text x="18" y="257" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="276" fill="#39c5cf" font-weight="600" xml:space="preserve">  Step 8/8 — Running it every day</text>
+<text x="18" y="295" fill="#8b949e" xml:space="preserve">  ──────────────────────────────────</text>
+<text x="18" y="314" fill="#c9d1d9" xml:space="preserve">  Nothing is scheduled automatically — that is your choice to make.</text>
+<text x="18" y="333" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="352" fill="#c9d1d9" xml:space="preserve">  To run by hand:</text>
+<text x="18" y="371" fill="#c9d1d9" xml:space="preserve">    .venv/bin/python research.py     # signals (no LLM key needed)</text>
+<text x="18" y="390" fill="#c9d1d9" xml:space="preserve">    .venv/bin/python decide.py       # exits, then propose+enforce</text>
+<text x="18" y="409" fill="#c9d1d9" xml:space="preserve">    .venv/bin/python journal.py      # write up the day</text>
+<text x="18" y="428" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="447" fill="#c9d1d9" xml:space="preserve">  To run automatically (macOS/Linux), add to `crontab -e`:</text>
+<text x="18" y="466" fill="#c9d1d9" xml:space="preserve">    45 9  * * 1-5  cd ~/trading-agent-oss &amp;&amp; ~/trading-agent-oss/.venv/bin/python research.py</text>
+<text x="18" y="485" fill="#c9d1d9" xml:space="preserve">    0  10 * * 1-5  cd ~/trading-agent-oss &amp;&amp; ~/trading-agent-oss/.venv/bin/python decide.py</text>
+<text x="18" y="504" fill="#c9d1d9" xml:space="preserve">    15 16 * * 1-5  cd ~/trading-agent-oss &amp;&amp; ~/trading-agent-oss/.venv/bin/python journal.py</text>
+<text x="18" y="523" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="542" fill="#c9d1d9" xml:space="preserve">  Times are your machine&#x27;s local clock — the market runs 9:30-16:00 ET.</text>
+<text x="18" y="561" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="580" fill="#3fb950" font-weight="600" xml:space="preserve">  Done — you are set up for paper trading.</text>
+<text x="18" y="599" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="618" fill="#c9d1d9" xml:space="preserve">  Read DISCLAIMER.md before you consider real money.</text>
+<text x="18" y="637" fill="#c9d1d9" xml:space="preserve">  When you have run a quarter on paper: python3 setup_wizard.py --live</text>
+</g>
+</svg>

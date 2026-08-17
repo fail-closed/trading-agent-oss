@@ -23,6 +23,7 @@ see the note in `live_setup()`.
 Re-running is safe. Existing `.env` values are shown (secrets masked) and kept
 unless you choose to replace them.
 """
+import getpass
 import json
 import os
 import re
@@ -77,11 +78,19 @@ def die(msg, fix=None):
 
 
 def ask(prompt, default=None, secret=False, allow_blank=False):
-    """One question. Returns a stripped string. Ctrl-C exits cleanly."""
+    """One question. Returns a stripped string. Ctrl-C exits cleanly.
+
+    `secret=True` reads without echo (getpass), so a broker secret does not land
+    in the terminal scrollback, a shared screen, or a screen recording. Anything
+    that is a credential must pass secret=True — the first version of this wizard
+    declared the parameter and never used one, which meant the Alpaca secret was
+    echoed in full and stayed visible for the rest of the session.
+    """
     suffix = f" {_C['dim']}[{default}]{_C['x']}" if default else ""
+    reader = getpass.getpass if secret else input
     try:
         while True:
-            val = input(f"  {prompt}{suffix}: ").strip()
+            val = reader(f"  {prompt}{suffix}: ").strip()
             if not val and default is not None:
                 return default
             if val or allow_blank:
@@ -231,7 +240,7 @@ def step_paper_keys(env):
     else:
         while True:
             key = ask("Paste your paper API key ID")
-            sec = ask("Paste your paper secret key")
+            sec = ask("Paste your paper secret key (hidden as you type)", secret=True)
             if key.upper().startswith("PK") is False and key.upper().startswith("AK"):
                 warn("that looks like a LIVE key (starts with AK). Paper keys start with PK.")
                 if not confirm("use it anyway?", default=False):
@@ -294,9 +303,9 @@ def step_llm(env):
     if have:
         ok(f"already set ({mask(have)})")
         if confirm("replace it?", default=False):
-            env["ANTHROPIC_API_KEY"] = ask("Anthropic API key", allow_blank=True)
+            env["ANTHROPIC_API_KEY"] = ask("Anthropic API key (hidden)", secret=True, allow_blank=True)
     elif confirm("add an Anthropic API key now?", default=False):
-        env["ANTHROPIC_API_KEY"] = ask("Anthropic API key", allow_blank=True)
+        env["ANTHROPIC_API_KEY"] = ask("Anthropic API key (hidden)", secret=True, allow_blank=True)
     else:
         env.setdefault("ANTHROPIC_API_KEY", "")
         warn("skipped — research.py will work, decide.py will not")
@@ -453,7 +462,7 @@ def live_setup():
     say()
     while True:
         k = ask("Live API key ID")
-        s = ask("Live secret key")
+        s = ask("Live secret key (hidden as you type)", secret=True)
         if k == env.get("ALPACA_API_KEY"):
             bad("that is your PAPER key. Live keys are generated separately.")
             continue

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 639 639" width="639" height="639" role="img" aria-label="Terminal recording: python3 setup_wizard.py">
+<rect width="639" height="639" rx="10" fill="#0d1117"/>
+<circle cx="20" cy="18" r="5.5" fill="#f85149"/>
+<circle cx="39" cy="18" r="5.5" fill="#d29922"/>
+<circle cx="58" cy="18" r="5.5" fill="#3fb950"/>
+<text x="319" y="22" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11.5" fill="#8b949e">python3 setup_wizard.py</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">
+<text x="18" y="48" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="67" fill="#c9d1d9" xml:space="preserve">  trading-agent setup</text>
+<text x="18" y="86" fill="#c9d1d9" xml:space="preserve">  Paper trading, start to finish. No money involved.</text>
+<text x="18" y="105" fill="#c9d1d9" xml:space="preserve">  Ctrl-C at any point — nothing is written until step 7.</text>
+<text x="18" y="124" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="143" fill="#39c5cf" font-weight="600" xml:space="preserve">  Step 1/8 — Checking Python</text>
+<text x="18" y="162" fill="#8b949e" xml:space="preserve">  ─────────────────────────────</text>
+<text x="18" y="181" fill="#c9d1d9" xml:space="preserve">  found Python 3.14.7</text>
+<text x="18" y="200" fill="#3fb950" xml:space="preserve">  ✓ Python 3.14 is supported</text>
+<text x="18" y="219" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="238" fill="#39c5cf" font-weight="600" xml:space="preserve">  Step 2/8 — Installing dependencies</text>
+<text x="18" y="257" fill="#8b949e" xml:space="preserve">  ─────────────────────────────────────</text>
+<text x="18" y="276" fill="#c9d1d9" xml:space="preserve">  creating an isolated environment so this cannot disturb other Python projects…</text>
+<text x="18" y="295" fill="#3fb950" xml:space="preserve">  ✓ created .venv/</text>
+<text x="18" y="314" fill="#c9d1d9" xml:space="preserve">  installing packages (this takes a minute or two)…</text>
+<text x="18" y="333" fill="#3fb950" xml:space="preserve">  ✓ dependencies installed</text>
+<text x="18" y="352" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="371" fill="#39c5cf" font-weight="600" xml:space="preserve">  Step 3/8 — Connecting your Alpaca paper account</text>
+<text x="18" y="390" fill="#8b949e" xml:space="preserve">  ──────────────────────────────────────────────────</text>
+<text x="18" y="409" fill="#c9d1d9" xml:space="preserve">  Alpaca is the broker. A PAPER account is free, needs no money, and</text>
+<text x="18" y="428" fill="#c9d1d9" xml:space="preserve">  trades with fake cash against real market prices.</text>
+<text x="18" y="447" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="466" fill="#58a6ff" xml:space="preserve">  1. Sign up (free): https://alpaca.markets</text>
+<text x="18" y="485" fill="#58a6ff" xml:space="preserve">  2. Make sure the dashboard says &#x27;Paper&#x27; (top-left toggle), not &#x27;Live&#x27;</text>
+<text x="18" y="504" fill="#58a6ff" xml:space="preserve">  3. Find &#x27;API Keys&#x27; and click Generate</text>
+<text x="18" y="523" fill="#58a6ff" xml:space="preserve">  4. Copy BOTH values — the secret is shown only once</text>
+<text x="18" y="542" fill="#c9d1d9" xml:space="preserve"></text>
+<text x="18" y="561" fill="#c9d1d9" xml:space="preserve">  Paste your paper API key ID: PKEXAMPLE_NOT_A_REAL_KEY</text>
+<text x="18" y="580" fill="#c9d1d9" xml:space="preserve">  Paste your paper secret key (hidden as you type): </text>
+<text x="18" y="599" fill="#c9d1d9" xml:space="preserve">  verifying against Alpaca…</text>
+<text x="18" y="618" fill="#3fb950" xml:space="preserve">  ✓ connected — paper account with $100,000.00 of play money</text>
+</g>
+</svg>

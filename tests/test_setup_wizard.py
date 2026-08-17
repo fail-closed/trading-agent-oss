@@ -37,6 +37,9 @@ def _answers(monkeypatch, *values):
             raise AssertionError(f"wizard asked an unexpected question: {prompt!r}")
 
     monkeypatch.setattr("builtins.input", fake_input)
+    # Secrets are read via getpass, not input — both must draw from the same
+    # script or a test silently hangs waiting on a real terminal.
+    monkeypatch.setattr(w.getpass, "getpass", fake_input)
 
 
 def _paper_ready(tmp_path, sessions=0):
@@ -232,3 +235,55 @@ def test_alpaca_account_distinguishes_a_network_failure(monkeypatch):
     monkeypatch.setattr(w.urllib.request, "urlopen", boom)
     good, msg = w.alpaca_account("k", "s", w.PAPER_BASE)
     assert not good and "internet connection" in msg
+
+
+# ── credentials must never be echoed ─────────────────────────────────────────
+
+def test_every_credential_prompt_reads_without_echo():
+    """A broker secret typed with echo on stays in the scrollback, in a shared
+    screen, and in any recording. The first version of this wizard declared
+    `secret=True` on ask() and never passed it — so this asserts the wiring, not
+    just the capability."""
+    import ast
+    src = (pathlib_Path("setup_wizard.py")).read_text()
+    tree = ast.parse(src)
+    unguarded = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "ask"):
+            continue
+        prompt = node.args[0].value if node.args and isinstance(node.args[0], ast.Constant) else ""
+        low = prompt.lower()
+        # "API key ID" is the public half of an Alpaca credential pair and is
+        # echoed on purpose — the wizard shows it back so a typo is visible.
+        looks_secret = ("secret" in low or "token" in low
+                        or ("api key" in low and "id" not in low))
+        passes_secret = any(kw.arg == "secret" and kw.value.value is True
+                            for kw in node.keywords if isinstance(kw.value, ast.Constant))
+        if looks_secret and not passes_secret:
+            unguarded.append(prompt)
+    assert not unguarded, f"credential prompts echoing to the terminal: {unguarded}"
+
+
+def test_ask_uses_getpass_when_secret(monkeypatch):
+    seen = []
+
+    def gp(prompt=""):
+        seen.append("getpass")
+        return "s3cret"
+
+    def inp(prompt=""):
+        seen.append("input")
+        return "plain"
+
+    monkeypatch.setattr(w.getpass, "getpass", gp)
+    monkeypatch.setattr("builtins.input", inp)
+    assert w.ask("Live secret key", secret=True) == "s3cret"
+    assert seen == ["getpass"], "a secret prompt must not fall through to input()"
+    seen.clear()
+    assert w.ask("Paste your paper API key ID") == "plain"
+    assert seen == ["input"], "a non-secret prompt should use plain input"
+
+
+def pathlib_Path(name):
+    from pathlib import Path
+    return Path(__file__).resolve().parent.parent / name

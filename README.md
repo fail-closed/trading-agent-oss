@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-262_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-264_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -81,10 +81,17 @@ time the model sees the book, those decisions are already executed facts.
 
 ### Four gates before real money
 
-The wizard's live path (`python3 setup_wizard.py --live`) is deliberately harder
-than its paper path: it refuses without recorded paper sessions, asks whether you
-have read the three files that gate a bad order, makes you name an amount you'd be
-untroubled to lose, and makes you type a sentence rather than press Enter.
+The wizard's live path is deliberately **harder** than its paper path. It refuses
+without recorded paper sessions, asks whether you have read the three files that
+gate a bad order, makes you name an amount you would be untroubled to lose, and
+requires a typed sentence rather than a keypress:
+
+<p align="center">
+  <img src="assets/wizard-live-gate.svg" alt="Terminal: setup_wizard.py --live counts paper sessions on disk and refuses with only 6 recorded, explaining that 20 is the floor and 60 the honest bar" width="76%">
+</p>
+
+That capture is unedited. The session count is read off disk, not asked — so the
+gate cannot be talked past, only satisfied.
 
 `accounts.is_live()` returns `False` — meaning paper — unless **all four** hold:
 
@@ -215,10 +222,23 @@ git clone https://github.com/fail-closed/trading-agent-oss.git && cd trading-age
 python3 setup_wizard.py
 ```
 
-It checks your Python, installs everything into an isolated folder, takes your
-Alpaca **paper** keys and verifies them against the real broker, lets you pick a
-watchlist, and runs the engine once so you see real output. Nothing is written
-until your details are confirmed working; Ctrl-C backs out cleanly.
+<p align="center">
+  <img src="assets/wizard-setup.svg" alt="Terminal: the wizard checks Python, installs dependencies, then verifies Alpaca paper keys against the real broker and reports the account balance" width="82%">
+</p>
+
+Your keys are checked against the live broker API **before anything is written**,
+so you find out immediately if they are wrong — and the secret is read without
+echo, so it never appears on screen or in your scrollback.
+
+<p align="center">
+  <img src="assets/wizard-finish.svg" alt="Terminal: the wizard writes .env at permissions 0600, runs the signal engine once, and prints copy-paste cron lines for the daily schedule" width="82%">
+</p>
+
+It finishes by running the engine once — real market data, no orders — and printing
+the schedule you can copy into cron. Ctrl-C backs out cleanly at any point.
+
+> Both captures are the wizard's actual output. Only the account balance and the
+> API key are synthetic, and the pip/engine steps are elided for length.
 
 Full walkthrough: **[GETTING_STARTED.md](GETTING_STARTED.md)**.
 
@@ -234,7 +254,7 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 262 tests
+pytest -q                     # 264 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -265,7 +285,7 @@ not shipped.
 
 ## Tests as a design tool
 
-262 tests, and the interesting ones do not check behaviour — they make a class of
+264 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |
