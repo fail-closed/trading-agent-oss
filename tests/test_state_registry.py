@@ -71,6 +71,12 @@ _COMPUTED = re.compile(
 # Not state: fixed inputs that live in git, not on the volume.
 IN_REPO = {"watchlist.json", "risk_limits.json", "package.json", "package-lock.json"}
 
+# Directories whose Python is not application code. Kept identical to
+# tests/test_coverage_floor.NOT_APP_CODE — the two tripwires must agree on what
+# counts as application code, or one will police a file the other ignores.
+NOT_APP_CODE = ("tests/", "dashboard/static/", "design-system/", "bridge/",
+                "tradingview-mcp/", "scripts/")
+
 
 def _declared_state_files():
     """{filename: [modules that declare it]} across tracked top-level modules."""
@@ -78,7 +84,14 @@ def _declared_state_files():
     files = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT,
                            capture_output=True, text=True).stdout.split()
     for name in files:
-        if "/" in name or name.startswith("tests"):
+        # Was `if "/" in name` — top-level only, which made this tripwire
+        # conditional on a layout choice. A module moved into a package could
+        # invent unregistered state and the suite stayed green, because an
+        # absent check and a passing check look identical (§8 habit 9). Probed
+        # 2026-08-16 before the fix: a packaged module declaring an unbacked
+        # state file passed. Test dirs stay excluded — their fixtures name
+        # throwaway files on purpose.
+        if name.startswith(NOT_APP_CODE):
             continue
         text = (ROOT / name).read_text()
         for pattern in (_CONST, _COMPUTED):

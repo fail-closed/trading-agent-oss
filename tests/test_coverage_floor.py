@@ -72,10 +72,33 @@ NO_TESTS = {
 }
 
 
+# Directories whose Python is not application code we require tests for.
+NOT_APP_CODE = ("tests/", "dashboard/static/", "design-system/", "bridge/",
+                "tradingview-mcp/", "scripts/")
+
+
 def _modules():
+    """Every application module, top-level OR packaged, as an import path.
+
+    Was `if "/" not in f` — top level only. That made the whole tripwire
+    conditional on a layout choice: any module moved into a package silently
+    stopped being covered, and the suite stayed green because an absent check and
+    a passing check are indistinguishable (OPERATIONS §8 habit 9). Probed
+    2026-08-16 before this change: a packaged module with real logic and no test
+    passed 7/7. It also meant `strategies/` — which already existed — was never
+    checked at all.
+
+    Returned as dotted import paths (`strategies.catalog`) so _is_covered can
+    match how a test would actually import them.
+    """
     out = subprocess.run(["git", "ls-files", "*.py"], cwd=ROOT,
                          capture_output=True, text=True).stdout.split()
-    return sorted(f[:-3] for f in out if "/" not in f)
+    mods = []
+    for f in out:
+        if f.startswith(NOT_APP_CODE) or f.endswith("__init__.py"):
+            continue
+        mods.append(f[:-3].replace("/", "."))
+    return sorted(mods)
 
 
 def _test_sources():
@@ -84,11 +107,23 @@ def _test_sources():
 
 def _is_covered(module, sources):
     """Covered = some test imports it, or names its filename (the source-scanning
-    tripwires like test_stop_rule.py reference modules that way)."""
+    tripwires like test_stop_rule.py reference modules that way).
+
+    `module` is a dotted path. A packaged module can be imported three ways —
+    `import a.b`, `from a.b import x`, `from a import b` — and the last one names
+    only the leaf, so all three are matched. Path-form references
+    ("strategies/catalog.py") count too."""
+    dotted = re.escape(module)
+    leaf = module.rsplit(".", 1)[-1]
+    pkg = module.rsplit(".", 1)[0] if "." in module else None
+    path = re.escape(module.replace(".", "/"))
     for text in sources:
-        if re.search(rf"^\s*(?:import|from)\s+{module}\b", text, re.M):
+        if re.search(rf"^\s*(?:import|from)\s+{dotted}\b", text, re.M):
             return True
-        if re.search(rf'["\']{module}\.py["\']', text):
+        if pkg and re.search(rf"^\s*from\s+{re.escape(pkg)}\s+import\s+[^\n]*\b{re.escape(leaf)}\b",
+                             text, re.M):
+            return True
+        if re.search(rf'["\']{path}\.py["\']', text):
             return True
     return False
 
@@ -114,7 +149,11 @@ def test_exemptions_stay_honest():
     assert not stale, (f"{stale} are exempted but now have tests — remove them "
                        "from NO_TESTS so the list keeps meaning something.")
 
-    missing = [m for m in NO_TESTS if not (ROOT / f"{m}.py").exists()]
+    # Dotted paths, since modules may live in packages — `studies.backtest`
+    # is studies/backtest.py on disk, and the old f"{m}.py" reported every
+    # packaged exemption as a stale entry the moment anything moved.
+    missing = [m for m in NO_TESTS
+               if not (ROOT / (m.replace(".", "/") + ".py")).exists()]
     assert not missing, (f"{missing} are exempted but no longer exist — delete "
                          "the entries.")
 

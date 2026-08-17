@@ -27,10 +27,20 @@ Two CI tripwires enforce this:
 
 Both edits are cheap. What is no longer possible is not noticing.
 
-The registry one had a blind spot worth knowing about: its detector originally
-matched only `NAME = "file.json"`, so any constant built by `os.path.join(...)`
-or an f-string was invisible — six files, including one tracking spend against a
-paid-API budget. Widening it surfaced four genuinely unclassified files.
+Both had blind spots worth knowing about, and both were found by accident
+rather than by CI:
+
+- The registry's detector originally matched only `NAME = "file.json"`, so any
+  constant built by `os.path.join(...)` or an f-string was invisible — six
+  files, including one tracking spend against a paid-API budget.
+- Both tripwires scanned **top-level `*.py` only**, so an entire package could
+  exist without ever being checked, and moving any module into a package would
+  silently delete its coverage with no red build. Probed before the fix: a
+  packaged module with untested logic *and* an unregistered state file passed
+  clean.
+
+The lesson is not "widen your regexes." It is that a tripwire's *scope* is a
+silent assumption — here, a repository layout nobody had promised to keep.
 
 ## 3. Verify the verifier
 

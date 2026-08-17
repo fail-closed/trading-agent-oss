@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-208_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-225_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -211,7 +211,7 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 208 tests
+pytest -q                     # 225 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -242,13 +242,14 @@ not shipped.
 
 ## Tests as a design tool
 
-208 tests, and the interesting ones do not check behaviour — they make a class of
+225 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |
 |---|---|
 | `test_coverage_floor.py` | A module with real logic shipping untested. Every module is tested **or** listed with a written reason |
 | `test_state_registry.py` | State whose loss nobody considered. Every state file is backed up **or** declared disposable with a reason |
+| both of the above | Scope creep in the *tripwire itself* — they walk packages, not just the repo root, so moving code into a package can't silently drop it out of CI's view |
 | `test_stop_rule.py` | A second definition of the stop appearing anywhere |
 | `test_allocation_rule.py` | A position cap computed inline instead of via the shared helper |
 
