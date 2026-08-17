@@ -211,6 +211,22 @@ def halt_reason(account: str):
 
 # ── The gate ──────────────────────────────────────────────────────────────────
 
+def _is_finite_amount(x) -> bool:
+    """True only for a real, finite, non-negative money amount.
+
+    THE one place that decides what counts as a valid amount, so trade.py and
+    risk_guard cannot disagree about it (OPERATIONS §8 habit 6). Rejects NaN,
+    ±inf, negatives, and anything non-numeric — a string that sneaks in would
+    otherwise raise mid-comparison inside the order path rather than fail closed.
+    """
+    import math
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(v) and v >= 0
+
+
 def evaluate(account, side, notional, equity, day_start, month_start,
              held_value, orders_today, limits, month_contrib=0.0,
              bench_mtd_pct=None) -> tuple:
@@ -223,11 +239,34 @@ def evaluate(account, side, notional, equity, day_start, month_start,
     if kill_switch_on():
         return False, "KILL_SWITCH active — all trading halted"
 
+    if equity is not None and not _is_finite_amount(equity):
+        return False, f"invalid equity ({equity!r}) — not a finite non-negative number"
+
     # Sells/exits are always permitted otherwise — risk-reducing, and must work
     # even when the account is loss-halted so stop-losses can fire and you're
     # never trapped in a position.
     if side == "sell":
         return True, "ok (sell/exit always permitted)"
+
+    # BUYS ONLY, and deliberately placed after the sell bypass above. An earlier
+    # version of this check sat before it and blocked SELLS with a bad notional —
+    # which would stop a stop-loss firing, the one thing this file guarantees can
+    # always happen. Risk-reducing orders must never be gated on input hygiene.
+    #
+    # NaN fails OPEN through every numeric comparison below it: `NaN > x` is False
+    # for any x, and NaN is truthy, so `if notional and notional > cap` PASSES.
+    # Infinity was already caught (`inf > cap` is True), which is precisely why
+    # this looked fine. Open since the 2026-06-21 audit ("NaN-notional risk
+    # bypass"); nothing exercised it until 2026-08-17.
+    #
+    # Scope, stated honestly: trade.py rejects a non-finite notional at its own
+    # entry (before it ever calls here), so this is defence in depth, not the last
+    # line. What it fixes is the gate REPORTING "ok" for an order that can never
+    # be placed — an approval in the decision log for a trade that does not exist.
+    if notional is not None and not _is_finite_amount(notional):
+        return False, f"invalid notional ({notional!r}) — not a finite non-negative number"
+    if equity is not None and not _is_finite_amount(equity):
+        return False, f"invalid equity ({equity!r}) — not a finite non-negative number"
 
     daily = (equity / day_start - 1.0) if day_start else 0.0
     monthly = (equity / month_start - 1.0) if month_start else 0.0

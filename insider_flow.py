@@ -60,12 +60,27 @@ CLUSTER_MIN_BUYERS = 2
 
 
 def enabled() -> bool:
-    return os.getenv("INSIDER_FLOW", "").strip().lower() in ("1", "true", "yes", "on")
+    if os.getenv("INSIDER_FLOW", "").strip().lower() not in ("1", "true", "yes", "on"):
+        return False
+    if not _user_agent():
+        print("  [insider_flow] INSIDER_FLOW is on but SEC_USER_AGENT is unset — "
+              "skipping. SEC requires a real contact (e.g. "
+              'SEC_USER_AGENT="yourproject you@yourdomain.com"). Not sending a '
+              "fake one on your behalf.", file=sys.stderr)
+        return False
+    return True
 
 
 def _user_agent() -> str:
-    """SEC requires a real contact. Overridable so a fork does not impersonate us."""
-    return os.getenv("SEC_USER_AGENT", "trading-agent research you@example.com")
+    """SEC's fair-access policy requires a REAL contact. No default is shipped.
+
+    An earlier version defaulted to `trading-agent research you@example.com`.
+    That is worse than no default: every unconfigured clone would identify to SEC
+    with the same fake address, which is a policy violation and invites SEC to
+    rate-limit or block that user-agent string for everyone using this project.
+    Returning None disables the feature loudly instead — see enabled().
+    """
+    return os.getenv("SEC_USER_AGENT", "").strip() or None
 
 
 def _headers():

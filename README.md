@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-225_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-235_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -211,7 +211,7 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 225 tests
+pytest -q                     # 235 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -242,7 +242,7 @@ not shipped.
 
 ## Tests as a design tool
 
-225 tests, and the interesting ones do not check behaviour — they make a class of
+235 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |

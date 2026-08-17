@@ -109,7 +109,7 @@ The `portfolio_status` block in each session tells you the current mode:
 0 / 1 / 2. The live profile runs a lower floor — read `deploy_bands`.)*
 
 **Why AGGRESSIVE is not automatically score ≥ 0 any more:** a 5-year factor
-decomposition of our own universe (`strategy_lens.py`) benchmarked each mode's
+decomposition of our own universe (the factor-decomposition study (not shipped in this extraction)) benchmarked each mode's
 entries against simply equal-weighting all 198 watchlist names. Entries at
 score ≥ 2 produced +1.2%/yr alpha (t 0.32); entries at score ≥ 0 produced
 **−2.0%/yr** with beta 1.03 — that gate was buying the universe with worse
@@ -251,7 +251,7 @@ A signal has `is_breakout: true` when:
 - Breakouts tend to win faster (days to weeks); dips take longer to recover (weeks to months)
 
 **Why the target flipped.** A 5-year decomposition of our own 198-name universe
-(`strategy_lens.py`), benchmarked against simply equal-weighting that universe:
+(the factor-decomposition study (not shipped in this extraction)), benchmarked against simply equal-weighting that universe:
 
 | Entry type | Sharpe | maxDD | Alpha vs equal-weight | t-stat |
 |---|---|---|---|---|
@@ -452,7 +452,7 @@ python trade.py --symbol AAPL --side sell --qty 5
 Nearly every systematic strategy reduces to one of four payoff sources: **trend**
 (ride persistent drift), **carry** (hold the higher-yielding / insurance-selling
 side), **reversion** (fade over-extension), and **liquidity provision** (absorb
-someone else's forced flow). `strategy_lens.py` built all four on our own
+someone else's forced flow). the factor-decomposition study (not shipped in this extraction) built all four on our own
 198-name universe, 2021-05 → 2026-06, net of 5bp costs. Two of them failed here.
 Do not propose them again without new evidence.
 

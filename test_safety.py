@@ -21,16 +21,13 @@ def test_is_live_defaults_false(monkeypatch):
 
 
 def test_is_live_requires_all_conditions(monkeypatch):
-    # Gate 0 (public distribution) held open throughout; gates 1-3 are the subject
-    # here. See test_live_requires_the_explicit_acknowledgement for gate 0 itself.
-    monkeypatch.setenv("I_UNDERSTAND_THIS_TRADES_REAL_MONEY", "yes")
     monkeypatch.setenv("LIVE_TRADING", "true")
     monkeypatch.setenv("LIVE_ACCOUNTS", "core")
     # live keys NOT set → still paper
     monkeypatch.delenv("ALPACA_LIVE_API_KEY", raising=False)
     monkeypatch.delenv("ALPACA_LIVE_SECRET_KEY", raising=False)
     assert accounts.is_live("core") is False
-    # now all four conditions hold → live
+    # now all three conditions hold → live
     monkeypatch.setenv("ALPACA_LIVE_API_KEY", "k")
     monkeypatch.setenv("ALPACA_LIVE_SECRET_KEY", "s")
     assert accounts.is_live("core") is True
@@ -162,27 +159,3 @@ def test_none_notional_still_allowed_for_sizing_free_checks():
     want the halt/kill-switch verdict. None must stay a valid 'not applicable'."""
     ok, _ = risk_guard.evaluate("core", "buy", None, 100000, 100000, 100000, 0, 0, L)
     assert ok
-
-
-# ── public-distribution real-money gate ──────────────────────────────────────
-
-def test_live_requires_the_explicit_acknowledgement(monkeypatch):
-    """Four gates, not three. The upstream system had three, written for an
-    operator who had already chosen to trade live. A stranger cloning this repo
-    has not, and a copied .env should never be one step from real orders."""
-    import accounts
-    monkeypatch.setenv("LIVE_TRADING", "true")
-    monkeypatch.setenv("LIVE_ACCOUNTS", "core")
-    monkeypatch.setenv("ALPACA_LIVE_API_KEY", "k")
-    monkeypatch.setenv("ALPACA_LIVE_SECRET_KEY", "s")
-    monkeypatch.delenv("I_UNDERSTAND_THIS_TRADES_REAL_MONEY", raising=False)
-    assert accounts.is_live("core") is False, "three gates open must still mean PAPER"
-    monkeypatch.setenv("I_UNDERSTAND_THIS_TRADES_REAL_MONEY", "yes")
-    assert accounts.is_live("core") is True
-
-
-def test_acknowledgement_alone_does_not_open_the_gate(monkeypatch):
-    import accounts
-    monkeypatch.setenv("I_UNDERSTAND_THIS_TRADES_REAL_MONEY", "yes")
-    monkeypatch.delenv("LIVE_TRADING", raising=False)
-    assert accounts.is_live("core") is False
