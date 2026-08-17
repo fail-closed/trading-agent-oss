@@ -91,3 +91,25 @@ Numbered rows, permanent identifiers, cited from the code that exists because of
 them (`stops.py` cites the row explaining why it exists). Struck through when
 superseded, never removed. A log that gets tidied becomes a status board, and a
 status board teaches nobody anything.
+
+## 8. Friction belongs where the consequences are
+
+`setup_wizard.py` removes every obstacle it can from paper setup — it installs
+dependencies, verifies broker keys against the live API before writing anything,
+and runs the engine once so the user sees real output rather than a promise.
+
+Its `--live` path does the opposite, on purpose. It refuses without recorded
+paper sessions, asks whether the three files that gate a bad order have actually
+been read, requires an amount the user would be untroubled to lose, warns if the
+funded account exceeds that amount (position sizing reads account equity, so a
+larger balance quietly ignores the stated limit), and requires a typed sentence
+rather than a keypress.
+
+None of that is enforceable — a user can lie to a wizard. It is there so the
+decision is made deliberately instead of by pressing Enter four times, and every
+refusal path is covered by a test asserting nothing was written.
+
+The general rule: **optimise for the fewest steps where the worst outcome is a
+wasted afternoon, and for deliberateness where the worst outcome is someone's
+money.** A single "advanced setup" flow that treats both the same is the
+mistake — it either patronises the paper user or waves the live one through.

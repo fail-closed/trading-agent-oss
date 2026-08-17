@@ -31,7 +31,14 @@ ET = ZoneInfo("America/New_York")
 
 import copy
 
-import anthropic
+try:
+    import anthropic
+except ModuleNotFoundError:      # pragma: no cover - exercised in CI
+    # Only ask_claude() needs the SDK. Importing at module scope makes decide.py
+    # un-importable wherever it is absent — which breaks every test that touches
+    # this module, and any CI that ships a light dependency set. Upstream that
+    # turned CI red for a day and silently froze a CI-gated deploy.
+    anthropic = None
 from dotenv import load_dotenv
 
 load_dotenv()

@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-243_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-262_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -14,7 +14,7 @@
 
 <div align="center">
 
-🚦 [The Rails](#the-rails) | 📈 [Signal Engine](#the-signal-engine) | 🧪 [Evidence](#evidence--what-we-tested-and-rejected) | ⚡ [Quick Start](#quick-start) | 🔬 [Tests as Design](#tests-as-a-design-tool) | 📓 [Engineering Notes](docs/ENGINEERING.md)
+🚀 [Getting Started](GETTING_STARTED.md) | 🚦 [The Rails](#the-rails) | 📈 [Signal Engine](#the-signal-engine) | 🧪 [Evidence](#evidence--what-we-tested-and-rejected) | ⚡ [Quick Start](#quick-start) | 🔬 [Tests as Design](#tests-as-a-design-tool) | 📓 [Engineering Notes](docs/ENGINEERING.md)
 
 </div>
 
@@ -80,6 +80,11 @@ profit-take never waits on an LLM being available, in-budget, or agreeable — b
 time the model sees the book, those decisions are already executed facts.
 
 ### Four gates before real money
+
+The wizard's live path (`python3 setup_wizard.py --live`) is deliberately harder
+than its paper path: it refuses without recorded paper sessions, asks whether you
+have read the three files that gate a bad order, makes you name an amount you'd be
+untroubled to lose, and makes you type a sentence rather than press Enter.
 
 `accounts.is_live()` returns `False` — meaning paper — unless **all four** hold:
 
@@ -203,16 +208,33 @@ correction upstream turned a reported "100% win rate" into "0% beat-market."
 
 ## Quick Start
 
+**No coding required — a guided wizard asks you questions and verifies each answer:**
+
 ```bash
 git clone https://github.com/fail-closed/trading-agent-oss.git && cd trading-agent-oss
+python3 setup_wizard.py
+```
+
+It checks your Python, installs everything into an isolated folder, takes your
+Alpaca **paper** keys and verifies them against the real broker, lets you pick a
+watchlist, and runs the engine once so you see real output. Nothing is written
+until your details are confirmed working; Ctrl-C backs out cleanly.
+
+Full walkthrough: **[GETTING_STARTED.md](GETTING_STARTED.md)**.
+
+<details>
+<summary>Manual setup, if you'd rather</summary>
+
+```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # add Alpaca PAPER keys — free, no funding required
 ```
+</details>
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 243 tests
+pytest -q                     # 262 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -243,7 +265,7 @@ not shipped.
 
 ## Tests as a design tool
 
-243 tests, and the interesting ones do not check behaviour — they make a class of
+262 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |
