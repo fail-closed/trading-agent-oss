@@ -14,7 +14,7 @@
 
 <div align="center">
 
-🚀 [Getting Started](GETTING_STARTED.md) | 🚦 [The Rails](#the-rails) | 📈 [Signal Engine](#the-signal-engine) | 🧪 [Evidence](#evidence--what-we-tested-and-rejected) | ⚡ [Quick Start](#quick-start) | 🔬 [Tests as Design](#tests-as-a-design-tool) | 📓 [Engineering Notes](docs/ENGINEERING.md)
+🚀 [Getting Started](GETTING_STARTED.md) | 💵 [Why This Is Different](#what-makes-this-different) | 🚦 [The Rails](#the-rails) | 📈 [Signal Engine](#the-signal-engine) | 🧪 [Evidence](#evidence--what-we-tested-and-rejected) | ⚡ [Quick Start](#quick-start) | 🔬 [Tests as Design](#tests-as-a-design-tool) | 📓 [Engineering Notes](docs/ENGINEERING.md)
 
 </div>
 
@@ -40,6 +40,71 @@ lose money is decided elsewhere, in Python, under test.
 > faster than manual trading, including while you are asleep. See
 > **[DISCLAIMER.md](DISCLAIMER.md)** and [LICENSE](LICENSE) — there is no warranty
 > of any kind.
+
+## What makes this different
+
+Two things, and both are checkable rather than claimed.
+
+### 1. It costs about $3 a month to run
+
+One session a day makes **two LLM calls** — one for the macro brief, one for the
+decision. Not one call per agent, per ticker, per round.
+
+| | Input | Output | Cost |
+|---|---|---|---|
+| `macro_context.py` | ~10k | ~1k | $0.045 |
+| `decide.py` | ~18k | ~1.5k | $0.076 |
+| **per session** | | | **$0.12** |
+| **per month** (21 trading days) | | | **≈ $2.55** |
+
+*Sonnet 4.6 list price, $3/$15 per million tokens. Input sizes measured from a
+real 30-symbol signals file plus the `CLAUDE.md` system prompt.*
+
+Add the broker — an Alpaca **paper** account is free — and the whole thing runs
+for the price of a coffee. `FRED` and Polymarket are free. `research.py` needs
+**no LLM key at all**, so the entire signal engine costs nothing and you can run
+it as often as you like.
+
+For contrast, the common pattern is an agent graph per ticker: four analysts, two
+researchers, a research manager, a trader, three risk debators and a portfolio
+manager, each a separate call, with the analysts looping over tools. Counted from
+one such framework's own graph, that is ~17–18 calls per ticker per day:
+
+| Tickers | Calls/day | Cost/month |
+|---|---|---|
+| 5 | ~88 | **≈ $66** |
+| 10 | ~175 | **≈ $132** |
+
+Same models, same prices. The difference is architectural, not a discount — and it
+is the reason this can watch 30 names for less than that pattern spends on 1.
+
+### 2. The model is the least trusted component
+
+Most LLM trading projects put the model in charge and give it tools. This inverts
+that. The model's entire job is **choosing among candidates the rules have already
+approved** — and everything that can lose money is decided elsewhere, in Python,
+under test.
+
+| The model **cannot** | Because |
+|---|---|
+| Trigger an exit | Stop-losses and profit-takes run **before** it is called. By the time it sees the book, those are executed facts |
+| Size a position | `buy_notional` is computed by the sizer; caps live in `accounts.effective_max_allocation()` |
+| Exceed a limit | `risk_guard.py` and `trade.py` re-check cash floor, position cap, order cap and daily-loss halt **after** it speaks |
+| Place a market order | `trade.py` only ever emits limit orders |
+| Trade a blacked-out name | Earnings blackout is enforced in code; such names are stripped before it sees them |
+| Reach the broker on bad input | A non-finite notional fails closed — including `NaN`, which passes every naive comparison |
+
+A prompt cannot argue past any of those, because none of them is in the prompt.
+
+**And we measure whether the model layer earns its place.** The bull/bear veto runs
+in shadow mode — recording what it *would* have blocked, scoring those names at
+T+5 — because "an adversarial critic helps" was an assumption, not a finding. The
+same discipline applies to our own ML: the dip-confidence model tops out near
+**0.50 AUC** on price-derived features, which is published here rather than hidden,
+because it is the measured reason to go looking for non-price inputs instead.
+
+If you want the honest summary: the LLM is a ranker inside a box built by
+engineers who assumed it would sometimes be wrong.
 
 ## Provenance
 
