@@ -45,7 +45,7 @@ lose money is decided elsewhere, in Python, under test.
 
 Two things, and both are checkable rather than claimed.
 
-### 1. It costs about $3 a month to run
+### 1. It costs about $6 a month to run
 
 One session a day makes **two LLM calls** — one for the macro brief, one for the
 decision. Not one call per agent, per ticker, per round.
