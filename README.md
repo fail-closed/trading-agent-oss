@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-282_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-297_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -326,11 +326,38 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 282 tests
+pytest -q                     # 297 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
 large caps chosen so a first run works. They are not a recommendation.
+
+Or build one by liquidity, with every exclusion counted:
+
+```bash
+.venv/bin/python universe_builder.py --size 1000 --dry-run   # show, don't write
+.venv/bin/python universe_builder.py --size 1000
+```
+
+```
+Universe: 1000/1000 selected from 14232 listed
+  ADV range: $1,099,072,157 … $7,728,546 per day
+  max_allocation: 0.15% per name
+  dropped:
+    below_liquidity_rank       5810      not_tradable      862
+    no_price_data              3488      leveraged         816
+    below_min_price            1426      exchange          309
+```
+
+Ranked by 20-day average dollar volume — the same quantity `trade.py`'s ADV guard
+measures — because whether an order fills without moving the price matters more
+than company size. It preserves your `risk` block, caps `max_allocation` below the
+10% hard limit, and excludes leveraged/inverse products, sub-$5 names and OTC. The
+counts are printed because "top 1000 by liquidity" hides six judgement calls.
+
+> A wider universe needs `signal_rank.py` (shipped) so the prompt stays bounded —
+> and your own re-validation. **The Sharpe and alpha figures below were measured on
+> a 198-name universe and do not transfer.**
 
 ### A session
 
@@ -357,7 +384,7 @@ not shipped.
 
 ## Tests as a design tool
 
-282 tests, and the interesting ones do not check behaviour — they make a class of
+297 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |
