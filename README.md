@@ -5,7 +5,7 @@
 <div align="center" style="line-height: 1;">
   <a href="#quick-start"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white"/></a>
   <a href="#the-rails"><img alt="Paper by default" src="https://img.shields.io/badge/paper_trading-default-0d9488"/></a>
-  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-312_passing-3fb950"/></a>
+  <a href="#tests-as-a-design-tool"><img alt="Tests" src="https://img.shields.io/badge/tests-328_passing-3fb950"/></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-64748b"/></a>
   <a href="#not-advice"><img alt="Not investment advice" src="https://img.shields.io/badge/not-investment_advice-b91c1c"/></a>
 </div>
@@ -326,7 +326,7 @@ cp .env.example .env          # add Alpaca PAPER keys — free, no funding requi
 
 ```bash
 python research.py            # no LLM key needed — prints today's signals
-pytest -q                     # 312 tests
+pytest -q                     # 328 tests
 ```
 
 **Edit `watchlist.json` before anything else.** The ten symbols shipped are liquid
@@ -359,6 +359,32 @@ counts are printed because "top 1000 by liquidity" hides six judgement calls.
 > and your own re-validation. **The Sharpe and alpha figures below were measured on
 > a 198-name universe and do not transfer.**
 
+### Check your own universe before trusting it
+
+```bash
+.venv/bin/python -m studies.validate_universe --years 3 --hold 5
+```
+
+Measures whether *selecting* with these rules beats *equal-weighting the same
+names over the same days* — the only benchmark that separates skill from market
+drift. It imports the indicator functions from `research.py` rather than
+reimplementing them, so it measures the strategy you actually run.
+
+A real run on the shipped 10-name starter list:
+
+```
+  entry             n  excess/trade  annualised   Sharpe      t  verdict
+  breakout         50        0.256%      12.90%     0.59   0.59  indistinguishable from luck
+  dip              70       -0.258%     -13.02%    -0.58  -0.68  NEGATIVE — indistinguishable from luck
+  score_only      299       -0.148%      -7.45%    -0.35  -0.86  NEGATIVE — indistinguishable from luck
+```
+
+Note what it does *not* do: no t-stat clears 2, and it says so in words rather
+than letting +12.90% stand unqualified. It also states that it is in-sample and
+survivorship-flattered every time it runs. The direction — breakout positive, dip
+negative — independently matches the 198-name decomposition, which is the most
+that can honestly be claimed from n=50.
+
 ### A session
 
 ```
@@ -384,7 +410,7 @@ not shipped.
 
 ## Tests as a design tool
 
-312 tests, and the interesting ones do not check behaviour — they make a class of
+328 tests, and the interesting ones do not check behaviour — they make a class of
 mistake impossible.
 
 | Tripwire | Prevents |
