@@ -47,6 +47,7 @@ pytestmark = pytest.mark.skipif(
 # dip_scorer, breakout_scorer) were paid off the same day — 55/82 covered now.
 # Everything left is a dormant sleeve, a manual offline tool, or a vendor shim.
 NO_TESTS = {
+    "walk_forward": "manual walk-forward validation harness; needs sklearn + a built feature\n                     frame to mean anything, and CI deliberately omits sklearn",
     # ── Not covered in this public extraction, and why ───────────────────────
     # These modules ARE tested in the private system this was extracted from;
     # their tests depend on infrastructure (scheduler, dashboard, vendor keys)
