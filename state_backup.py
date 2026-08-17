@@ -30,6 +30,7 @@ it can never break the trading pipeline.
 """
 import os
 import sys
+import artifact_repo
 
 # Volume-only state files worth protecting (relative to the app working dir).
 STATE_FILES = [
@@ -86,7 +87,7 @@ EPHEMERAL_STATE = {
     "sec_cik_map.json": "cache — refetched from SEC on demand",
 }
 
-REPO = "YOUR_GH_USER/YOUR_REPO"
+REPO = artifact_repo.name()
 
 
 def _enabled() -> bool:
@@ -95,6 +96,10 @@ def _enabled() -> bool:
 
 def _repo():
     token = os.getenv("GITHUB_TOKEN")
+    if not artifact_repo.name():
+        print("GITHUB_REPO not set — artifact publishing is off. Set it to "
+              "YOUR repo to enable.", file=sys.stderr)
+        return None
     if not token:
         print("GITHUB_TOKEN not set — state backup skipped.", file=sys.stderr)
         return None

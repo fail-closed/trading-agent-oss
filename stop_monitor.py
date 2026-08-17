@@ -43,6 +43,7 @@ load_dotenv()
 
 import accounts
 import stops
+import artifact_repo
 
 ET = ZoneInfo("America/New_York")
 FRAC_STATE_FILE = "frac_stops.json"
@@ -237,7 +238,7 @@ def _publish_status(checked, stopped) -> None:
                            "checked": checked, "stopped": stopped,
                            "stop_pct": abs(stops.hard_exit_pct())})
         from github import Github, GithubException
-        repo = Github(token).get_repo("YOUR_GH_USER/YOUR_REPO")
+        repo = Github(token).get_repo(artifact_repo.require())
         path = f"status/stopmon-{scheduler}.json"
         msg = f"stop monitor status {scheduler}"
         try:

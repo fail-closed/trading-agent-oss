@@ -17,9 +17,10 @@ import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import artifact_repo
 
 ET = ZoneInfo("America/New_York")
-REPO_NAME = "YOUR_GH_USER/YOUR_REPO"
+REPO_NAME = artifact_repo.name()
 # Namespace by ARTIFACT_PREFIX (live project sets "live/") so a live run never
 # clobbers the paper digest on GitHub. Paper → signals/trade_reasons.json.
 OUT_PATH = f"{os.getenv('ARTIFACT_PREFIX', '')}signals/trade_reasons.json"
@@ -48,6 +49,10 @@ def build(decisions_glob: str = "decisions/*.json") -> dict:
 
 def _push(content: str):
     token = os.getenv("GITHUB_TOKEN")
+    if not artifact_repo.name():
+        print("GITHUB_REPO not set — artifact publishing is off. Set it to "
+              "YOUR repo to enable.", file=sys.stderr)
+        return None
     if not token:
         print("GITHUB_TOKEN not set — skipping push", file=sys.stderr)
         return

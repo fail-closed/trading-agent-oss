@@ -58,8 +58,6 @@ NO_TESTS = {
     "macro_context": "LLM macro brief; the deterministic part it gained (prediction_markets) IS tested",
     "fundamentals": "yfinance fundamentals cache; network-bound, fail-open by construction",
     "market_calendar": "holiday cache over a public API; network-bound",
-    "trade_reasons": "publishes a display artifact; no decision logic",
-
     # ── Dormant sleeves: machinery kept, execution OFF ────────────────────────
 
     # ── Offline / manual analysis tools (never on the trade path) ─────────────
